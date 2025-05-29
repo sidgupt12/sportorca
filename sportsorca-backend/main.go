@@ -70,6 +70,49 @@ func getFixtures(c *gin.Context) {
 	c.Writer.Write(body)
 }
 
+func getBasketballGames(c *gin.Context) {
+	apiKey := os.Getenv("API_SPORTS_KEY")
+
+	// Get date parameter
+	date := c.DefaultQuery("date", time.Now().Format("2006-01-02"))
+
+	// Create request URL with date parameter
+	url := fmt.Sprintf("https://v1.basketball.api-sports.io/games?date=%s", date)
+
+	// Create request
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating request"})
+		return
+	}
+
+	// Add headers
+	req.Header.Add("x-rapidapi-key", apiKey)
+	req.Header.Add("x-rapidapi-host", "v1.basketball.api-sports.io")
+
+	// Make request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error making request to API"})
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error reading API response"})
+		return
+	}
+
+	// Set the content type header
+	c.Header("Content-Type", "application/json")
+	
+	// Write the raw response body directly
+	c.Writer.Write(body)
+}
+
 func main() {
 	loadEnv()
 
@@ -96,6 +139,7 @@ func main() {
 
 	// Routes
 	r.GET("/api/fixtures", getFixtures)
+	r.GET("/api/basketball/games", getBasketballGames)
 
 	// Start server
 	port := os.Getenv("PORT")
